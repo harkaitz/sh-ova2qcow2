@@ -1,0 +1,79 @@
+#!/bin/sh -e
+#L:
+#L:  MIT License
+#L:  
+#l:  Bug reports, feature requests to gemini|https://harkadev.com/oss
+#l:  Copyright (c) 2022 Harkaitz Agirre, harkaitz.aguirre@gmail.com
+#L:
+#L:  Permission is hereby granted, free of charge, to any person obtaining
+#L:  a copy of this software and associated documentation files (the
+#L:  "Software"), to deal in the Software without restriction, including
+#L:  without limitation the rights to use, copy, modify, merge, publish,
+#L:  distribute, sublicense, and/or sell copies of the Software, and to
+#L:  permit persons to whom the Software is furnished to do so, subject to
+#L:  the following conditions:
+#L:
+#L:  The above copyright notice and this permission notice shall be
+#L:  included in all copies or substantial portions of the Software.
+#L:
+#L:  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+#L:  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+#L:  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+#L:  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+#L:  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+#L:  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+#L:  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+##:
+#h: Usage: $0 OVA QCOW
+#h:
+#h: Convert VirtualBox OVA format to qcow2.
+##:
+ova2qcow2() {
+    local fr="$1" to="$2" pwd="`pwd`"
+    
+    ## Check arguments.
+    test   -n "${fr}" || ova2qcow2_error "Please specify an OVA file."
+    test ! -f "${fr}" || ova2qcow2_error "File '${fr}' does not exist."
+    test   -n "${to}" || ova2qcow2_error "Please specify a destination file."
+    
+    ## Check all programs are in place.
+    which qemu-img >/dev/null 2>&1 || ova2qcow2_error "Please install 'qemu-img'."
+    
+    ## Extract to a temporary directory.
+    local tmpdir="${to}.tmp"
+    if test ! -f "${tmpdir}/.extracted";then
+        ova2qcow2_info "Extracting ..."
+        mkdir -p "${tmpdir}"
+        tar -xvf "${fr}" -C "${tmpdir}"
+        touch "${tmpdir}/.extracted"
+    fi
+    
+    ## Search and convert.
+    local vmdk="`find "${tmpdir}" -iregex '.*\.vmdk$' | head -n 1`"
+    local info="`find "${tmpdir}" -iregex '.*\.ovf$' -exec cat '{}' ';'`"
+    test -n "${vmdk}" || ova2qcow2_error "Can't find any vmdk in ova file."
+    ova2qcow2_info "Converting ..."
+    qemu-img convert "${vmdk}" "${vmdk}.qcow2" -O qcow2
+
+    ## Move result and clean up.
+    mv "${vmdk}.qcow2"        "${to}"
+    printf '%s\n' "${info}" > "${to}.info"
+    rm -rf "${tmpdir}"
+}
+ova2qcow2_error() {
+    echo "${SCRNAME}: error: $*" >&2
+    return 1
+}
+ova2qcow2_info() {
+    echo "${SCRNAME}: $*" >&2
+}
+SCRNAME="`basename "$0"`"
+if test @"${SCRNAME}" = @"ova2qcow2";then
+    if test -n "$1";then
+        ova2qcow2 "$@"
+    else
+        sed -n 's/^ *#h: \{0,1\}//p' "$0" | sed "s|\\\$0|`basename $0`|g"
+        echo ""
+        sed -n 's/^ *#l: \{0,2\}//p' "$0"
+    fi
+fi
