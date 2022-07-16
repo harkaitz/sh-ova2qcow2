@@ -1,10 +1,19 @@
 DESTDIR     =
 PREFIX      =/usr/local
-SCRIPTS_BIN=$(shell find bin -executable -type f)
 all:
 clean:
 install:
-    ifneq ($(SCRIPTS_BIN),)
+## -- license --
+ifneq ($(PREFIX),)
+install: install-license
+install-license: LICENSE
+	mkdir -p $(DESTDIR)$(PREFIX)/share/doc/sh-ova2qcow2
+	cp LICENSE $(DESTDIR)$(PREFIX)/share/doc/sh-ova2qcow2
+endif
+## -- license --
+## -- install-sh --
+install: install-sh
+install-sh:
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
-	cp $(SCRIPTS_BIN) $(DESTDIR)$(PREFIX)/bin
-    endif
+	cp bin/ova2qcow2  $(DESTDIR)$(PREFIX)/bin
+## -- install-sh --
