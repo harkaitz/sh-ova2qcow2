@@ -8,9 +8,9 @@ ova2qcow2() {
     local fr="$1" to="$2" pwd="`pwd`"
     
     ## Check arguments.
-    test   -n "${fr}" || ova2qcow2_error "Please specify an OVA file."
-    test ! -f "${fr}" || ova2qcow2_error "File '${fr}' does not exist."
-    test   -n "${to}" || ova2qcow2_error "Please specify a destination file."
+    test -n "${fr}" || ova2qcow2_error "Please specify an OVA file."
+    test -f "${fr}" || ova2qcow2_error "File '${fr}' does not exist."
+    test -n "${to}" || ova2qcow2_error "Please specify a destination file."
     
     ## Check all programs are in place.
     which qemu-img >/dev/null 2>&1 || ova2qcow2_error "Please install 'qemu-img'."
@@ -25,10 +25,9 @@ ova2qcow2() {
     fi
     
     ## Search and convert.
-    local vmdk="`find "${tmpdir}" -iregex '.*\.vmdk$' | head -n 1`"
-    local info="`find "${tmpdir}" -iregex '.*\.ovf$' -exec cat '{}' ';'`"
+    local vmdk="$(find "${tmpdir}" -name '*.vmdk' | head -n 1)"
+    local info="$(find "${tmpdir}" -name '*.ovf' -exec cat '{}' ';')"
     test -n "${vmdk}" || ova2qcow2_error "Can't find any vmdk in ova file."
-    ova2qcow2_info "Converting ..."
     qemu-img convert "${vmdk}" "${vmdk}.qcow2" -O qcow2
 
     ## Move result and clean up.
